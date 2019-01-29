@@ -1,54 +1,80 @@
-
-
 import React, { Component } from 'react';
-import { FlatList, TouchableOpacity, Alert } from "react-native";
-import { createStackNavigator, createAppContainer } from 'react-navigation'
+import { FlatList, Alert, AsyncStorage } from "react-native";
+import { createStackNavigator } from 'react-navigation'
 
 import { Container, Header, Right, Left, Title, Text, Icon, Button, Body, Content, ListItem } from 'native-base'
 
 import CreateNotes from './createNotes'
 import UpdateNote from './updateNote'
-class Notepad extends Component {
+export class Notebook extends Component {
     static navigationOptions = {
+
         header: null
     }
 
     handleClick() {
         Alert.alert("I am clicked");
-        // Call method from parent
-        //this.props.onPress();
     }
 
     constructor() {
         super();
         this.state = {
-            data: [
-                { name: "Interstellar", header: false },
-                { name: "Dark Knight", header: false },
-                { name: "Pop", header: false },
-                { name: "Pulp Fiction", header: false },
-                { name: "Burning Train", header: false },
-            ]
+            data: []
         };
     }
-    componentWillMount() {
-        var arr = [];
-        this.state.data.map(obj => {
-            if (obj.header) {
-                arr.push(this.state.data.indexOf(obj));
+    async loadNotes() {
+        try {
+            var notes = await AsyncStorage.getItem("@ReactNotes:notes");
+            if (notes !== null) {
+                console.log(notes)
+                this.setState({ data: JSON.parse(notes) })
             }
-        });
-        arr.push(0);
-        this.setState({
-            stickyHeaderIndices: arr
-        });
+        } catch (error) {
+            console.log('AsyncStorage error: ' + error.message);
+        }
+    }
+
+
+    async saveNotes(note) {
+        try {
+            console.log(note)
+            let dummy = this.state.data
+            dummy.push(note);
+            await AsyncStorage.setItem("@ReactNotes:notes", JSON.stringify(dummy));
+            this.loadNotes()
+        } catch (error) {
+            console.log('AsyncStorage error: ' + error.message);
+        }
+    }
+    async updateNote(note, newnote) {
+        if (newnote != '') {
+            let dummy = this.state.data.filter(item => item !== note)
+            dummy.push(newnote);
+            await AsyncStorage.setItem("@ReactNotes:notes", JSON.stringify(dummy));
+            this.loadNotes()
+        } else {
+            let dummy = this.state.data.filter(item => item !== note)
+            await AsyncStorage.setItem("@ReactNotes:notes", JSON.stringify(dummy));
+            this.loadNotes()
+        }
+    }
+
+
+    componentWillMount() {
+        this.loadNotes();
+
     }
     renderItem = ({ item }) => {
-
         return (
-            <ListItem button={true} onPress={()=>{this.props.navigation.navigate("UpdateNote",{data:{item}})}} style={{ marginLeft: 0 }}>
+            <ListItem button={true} key={Math.random() * (9999 - 1)} onPress={() => {
+                this.props.navigation.navigate("UpdateNote", {
+                    data: { item },
+                    onGoBack: (note, newnote) => this.updateNote(note, newnote),
+                })
+            }}
+                style={{ marginLeft: 0 }}>
                 <Body>
-                    <Text>{item.name}</Text>
+                    <Text>{item}</Text>
                 </Body>
             </ListItem>
 
@@ -70,8 +96,9 @@ class Notepad extends Component {
                     <Right>
                         <Button transparent
                             onPress={() => {
-                                /* Navigate to the web view with params */
-                                this.props.navigation.navigate("CreateNote");
+                                this.props.navigation.navigate("CreateNote", {
+                                    onGoBack: (note) => this.saveNotes(note)
+                                });
                             }}
 
                         >
@@ -83,7 +110,7 @@ class Notepad extends Component {
                     <FlatList
                         data={this.state.data}
                         renderItem={this.renderItem}
-                        keyExtractor={item => item.name}
+                        keyExtractor={item => item}
                     />
                 </Content>
             </Container>
@@ -92,11 +119,14 @@ class Notepad extends Component {
 }
 
 export default createStackNavigator({
-    Notepad: Notepad,
+    Notepad: Notebook,
     CreateNote: CreateNotes,
-    UpdateNote:UpdateNote
+    UpdateNote: UpdateNote
 }, {
         navigationOptions: {
-            header: null
+            header: null,
+            tabBarIcon: ({ tintColor }) => (
+                <Icon name='ios-copy' style={{ color: tintColor }} />
+            ),
         }
     });

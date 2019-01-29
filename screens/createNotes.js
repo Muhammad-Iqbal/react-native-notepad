@@ -1,9 +1,8 @@
 
 
 import React, { Component } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { AsyncStorage } from 'react-native';
 
-import { createStackNavigator, createAppContainer } from 'react-navigation'
 
 import { Container, Header, Right, Left, Title, Text, Icon, Button, Body, Content, Textarea, Form } from 'native-base'
 
@@ -11,6 +10,15 @@ export default class Notepad extends Component {
     static navigationOptions = {
         header: null
     }
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            stext:''
+        }
+        
+    }
+
     render() {
         return (
             <Container>
@@ -33,7 +41,9 @@ export default class Notepad extends Component {
                         <Button transparent
                         onPress={
                                 ()=>{
-                                    alert("Implement Save Button")
+                                    
+                                    this.props.navigation.state.params.onGoBack(this.state.stext);
+                                    this.props.navigation.goBack()
                                 }
                             }
                         >
@@ -43,7 +53,7 @@ export default class Notepad extends Component {
                 </Header>
                 <Content padder>
                     <Form>
-                        <Textarea style={{fontSize:18,fontFamily:"ArialHebrew-Bold"}} rowSpan={25}  placeholder="Start Typing" />
+                        <Textarea style={{fontSize:18,fontFamily:"ArialHebrew-Bold"}} rowSpan={15} onChangeText={(text) => this.setState({stext:text})} placeholder="Start Typing" />
                     </Form>
                 </Content>
             </Container>

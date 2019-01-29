@@ -1,32 +1,55 @@
 
 
 import React, { Component } from 'react';
-import { Platform, StyleSheet, View,Alert } from 'react-native';
+import { Linking, Alert } from 'react-native';
 
-import { createStackNavigator, createAppContainer } from 'react-navigation'
+import { Root, Container, Header, Right, Left, Title, Icon, Button, Body, Content, Textarea, Form, ActionSheet } from 'native-base'
 
-import { Root, Container, Header, Right, Left, Title, Text, Icon, Button, Body, Content, Textarea, Form, ActionSheet } from 'native-base'
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
 
-
-var BUTTONS = [
-    { text: "Email", icon: "ios-mail", iconColor: "#2c8ef4" },
-    { text: "PDF", icon: "analytics", iconColor: "#f42ced" },
-    { text: "Project", icon: "aperture", iconColor: "#ea943b" },
-    { text: "Cancel", icon: "close", iconColor: "#25de5b" }
-];
-var DESTRUCTIVE_INDEX = 3;
-var CANCEL_INDEX = 4;
+var BUTTONS = ["Email", "PDF", "Project", "Cancel"];
+var CANCEL_INDEX = 3;
 
 export default class Notepad extends Component {
     static navigationOptions = {
         header: null
     }
+    _exportemail(note) {
+        url = 'mailto:?subject=Builder Helper Notes&body=' + note;
+        Linking.openURL(url);
+    }
+    constructor(props) {
+        super(props);
 
+        this.state = {
+            stext:''
+        }
+        
+    }
+    _exporttopdf(note){
+        var options2 = {
+            html: '<h1>Builder Helper PDF</h1><h5>'+note+'</h5>',
+      
+            fileName: 'test2',
+            
+            directory: 'docs',         
+            base64: true,
+      
+            height: 800,
+            width: 1056,               
+            padding: 24,               
+          };
+      
+          RNHTMLtoPDF.convert(options2).then((data2) => {
+            Alert.alert(
+              'filename' + options2.fileName,
+              'filePath=' + data2.filePath
+            );
+          });
+      
+    }
 
     render() {
-
-
-        console.log(this.props.navigation.state.params.data.item.name)
         return (
             <Root>
                 <Container>
@@ -35,6 +58,7 @@ export default class Notepad extends Component {
                             <Button transparent
                                 onPress={
                                     () => {
+                                        this.props.navigation.state.params.onGoBack(this.props.navigation.state.params.data.item,this.state.stext);
                                         this.props.navigation.goBack()
                                     }
                                 }
@@ -52,11 +76,14 @@ export default class Notepad extends Component {
                                         {
                                             options: BUTTONS,
                                             cancelButtonIndex: CANCEL_INDEX,
-                                            destructiveButtonIndex: DESTRUCTIVE_INDEX,
                                             title: "Export Note"
                                         },
                                         buttonIndex => {
-                                            this.setState({ clicked: BUTTONS[buttonIndex] });
+                                            if (BUTTONS[buttonIndex] === 'Email') {
+                                                this._exportemail(this.props.navigation.state.params.data.item)
+                                            }else if(BUTTONS[buttonIndex] === 'PDF'){
+                                                this._exporttopdf(this.props.navigation.state.params.data.item)
+                                            }
                                         }
                                     )}
                             >
@@ -70,13 +97,16 @@ export default class Notepad extends Component {
                                             'Delete Note',
                                             'Are you sure you want to delele this note ?',
                                             [
-                                                { text: 'OK', onPress: () => console.log('OK Pressed') },
+                                                { text: 'OK', onPress: () => {
+                                                    this.props.navigation.state.params.onGoBack(this.props.navigation.state.params.data.item,'');
+                                                    this.props.navigation.goBack()
+                                                } },
                                                 {
                                                     text: 'Cancel',
-                                                    onPress: () => console.log('Cancel Pressed'),
+                                                    onPress: () => this.props.navigation.goBack(),
                                                     style: 'cancel',
                                                 },
-                                                
+
                                             ],
                                             { cancelable: false },
                                         );
@@ -90,7 +120,7 @@ export default class Notepad extends Component {
                     </Header>
                     <Content padder>
                         <Form>
-                            <Textarea style={{ fontSize: 18, fontFamily: "ArialHebrew-Bold" }} rowSpan={25} value={this.props.navigation.state.params.data.item.name} />
+                            <Textarea style={{ fontSize: 18, fontFamily: "ArialHebrew-Bold" }} rowSpan={25} onChangeText={(text) => this.setState({stext:text})} defaultValue={this.props.navigation.state.params.data.item} />
                         </Form>
                     </Content>
                 </Container>
